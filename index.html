@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurante Império – Painel</title>
+<link rel="stylesheet" href="style.css">
+<script type="module" src="script.js"></script>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="tela-login">
+    <div class="login-box">
+        <h2>🔒 Acesso Restrito</h2>
+        <label>Email</label>
+        <input type="email" id="input-email" placeholder="email@restaurante.com">
+        <label>Senha</label>
+        <input type="password" id="input-senha" placeholder="••••••••">
+        <p id="erro-login"></p>
+        <button onclick="fazerLogin()">Entrar</button>
+        <button id="btn-cadastro" class="btn-cadastro-login" onclick="fazerCadastro()" style="display:none">
+            Primeiro acesso? Cadastrar
+        </button>
+    </div>
+</div>
+
+<!-- TELA DO PAINEL -->
+<div id="tela-painel">
+
+    <header>
+        <div>
+            <h1>🍱 Restaurante Império</h1>
+            <h2>Painel do Restaurante</h2>
+        </div>
+        <div class="header-info">
+            <span class="pill-online">Online</span>
+            <span class="atualizado-header" id="atualizado-em">Aguardando...</span>
+            <button class="btn-header" id="btnSom" onclick="toggleSom()">🔔 Som: off</button>
+            <button class="btn-header limpar" onclick="confirmarLimpeza()">🗑️ Limpar concluídos</button>
+            <button class="btn-header sair" onclick="fazerLogout()">🚪 Sair</button>
+        </div>
+    </header>
+
+    <div class="abas">
+        <button class="aba ativa" onclick="mudarAba('pendente', this)">⏳ Novos <span class="num" id="n-pendente">0</span></button>
+        <button class="aba" onclick="mudarAba('preparando', this)">👨‍🍳 Preparando <span class="num" id="n-preparando">0</span></button>
+        <button class="aba" onclick="mudarAba('pronto', this)">✅ Prontos <span class="num" id="n-pronto">0</span></button>
+        <button class="aba" onclick="mudarAba('entregue', this)">📦 Entregues <span class="num" id="n-entregue">0</span></button>
+    </div>
+
+    <main>
+        <div class="grid-pedidos" id="grid-pedidos">
+            <div class="vazio"><p>Carregando pedidos...</p></div>
+        </div>
+    </main>
+
+</div>
+
+<!-- MODAL LIMPEZA -->
+<div class="modal-overlay" id="modalLimpeza">
+    <div class="modal">
+        <h3>🗑️ Limpar concluídos</h3>
+        <p>Isso vai apagar todos os pedidos com status <strong>entregue</strong> ou <strong>cancelado</strong>. Confirma?</p>
+        <div class="modal-acoes">
+            <button class="btn-cancelar-modal" onclick="fecharModal()">Cancelar</button>
+            <button class="btn-confirmar"      onclick="limparConcluidos()">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<div class="notif" id="notif">
+    <div class="notif-titulo" id="notif-titulo"></div>
+    <div class="notif-desc"   id="notif-desc"></div>
+</div>
+
+
+</body>
+</html>
