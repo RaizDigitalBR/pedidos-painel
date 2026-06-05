@@ -47,6 +47,7 @@
         <button class="aba" onclick="mudarAba('preparando', this)">👨‍🍳 Preparando <span class="num" id="n-preparando">0</span></button>
         <button class="aba" onclick="mudarAba('pronto', this)">✅ Prontos <span class="num" id="n-pronto">0</span></button>
         <button class="aba" onclick="mudarAba('entregue', this)">📦 Entregues <span class="num" id="n-entregue">0</span></button>
+        <button class="aba" onclick="mudarAba('cardapio', this)">🍽️ Cardápio</button>
     </div>
 
     <main>
@@ -64,16 +65,46 @@
         <p>Isso vai apagar todos os pedidos com status <strong>entregue</strong> ou <strong>cancelado</strong>. Confirma?</p>
         <div class="modal-acoes">
             <button class="btn-cancelar-modal" onclick="fecharModal()">Cancelar</button>
-            <button class="btn-confirmar"      onclick="limparConcluidos()">Confirmar</button>
+            <button class="btn-confirmar" onclick="limparConcluidos()">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ITEM CARDÁPIO -->
+<div class="modal-overlay" id="modalItem">
+    <div class="modal" style="max-width:440px;text-align:left">
+        <h3 id="modal-item-titulo">Novo item</h3>
+        <p style="margin-bottom:1rem"></p>
+
+        <label class="label-campo">Nome *</label>
+        <input type="text" id="item-nome" class="input-campo" placeholder="Ex: Marmitex Tradicional">
+
+        <label class="label-campo">Descrição</label>
+        <input type="text" id="item-desc" class="input-campo" placeholder="Ex: Arroz, feijão, bife e salada">
+
+        <label class="label-campo">Categoria *</label>
+        <select id="item-categoria" class="input-campo">
+            <option value="marmitex">🍱 Marmitex</option>
+            <option value="bebida">🥤 Bebidas</option>
+            <option value="outro">🍽️ Outros</option>
+        </select>
+
+        <label class="label-campo">Preço (R$) *</label>
+        <input type="number" id="item-preco" class="input-campo" placeholder="0,00" step="0.01" min="0">
+
+        <p id="erro-item" class="erro-campo"></p>
+
+        <div class="modal-acoes">
+            <button class="btn-cancelar-modal" onclick="fecharModalItem()">Cancelar</button>
+            <button class="btn-confirmar" style="background:#2d4a2b" onclick="salvarItem()">Salvar</button>
         </div>
     </div>
 </div>
 
 <div class="notif" id="notif">
     <div class="notif-titulo" id="notif-titulo"></div>
-    <div class="notif-desc"   id="notif-desc"></div>
+    <div class="notif-desc" id="notif-desc"></div>
 </div>
-
 
 </body>
 </html>

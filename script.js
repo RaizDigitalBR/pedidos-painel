@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -36,7 +36,6 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('tela-login').style.display  = 'flex';
         document.getElementById('tela-painel').style.display = 'none';
         if (intervalId) { clearInterval(intervalId); intervalId = null; }
-        // verifica se já tem dono pra mostrar/esconder botão de cadastro
         verificarPrimeiroCadastro().then(primeiro => {
             document.getElementById('btn-cadastro').style.display = primeiro ? 'block' : 'none';
         });
@@ -100,7 +99,7 @@ async function buscarPedidos() {
         idsConhecidos = novosIds;
         primeiraVez   = false;
         atualizarBadges();
-        renderGrid();
+        if (abaAtual !== 'cardapio') renderGrid();
         const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
         document.getElementById('atualizado-em').textContent = `Atualizado às ${agora}`;
     } catch(e) { console.error(e); }
@@ -181,7 +180,11 @@ window.mudarAba = (aba, el) => {
     abaAtual = aba;
     document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativa'));
     el.classList.add('ativa');
-    renderGrid();
+    if (aba === 'cardapio') {
+        carregarCardapio();
+    } else {
+        renderGrid();
+    }
 };
 
 // ── LIMPAR ────────────────────────────────────────────────────────────────
@@ -234,3 +237,117 @@ function showNotif(titulo, desc) {
     n.classList.add('show');
     setTimeout(()=>n.classList.remove('show'), 4000);
 }
+
+// ── CARDÁPIO ADMIN ────────────────────────────────────────────────────────
+let cardapio       = [];
+let itemEditandoId = null;
+
+const categoriasLabel = { marmitex:'🍱 Marmitex', bebida:'🥤 Bebidas', outro:'🍽️ Outros' };
+const categoriasOrdem = ['marmitex', 'bebida', 'outro'];
+
+async function carregarCardapio() {
+    try {
+        const snap = await getDocs(query(collection(db,'cardapio'), orderBy('categoria')));
+        cardapio = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        renderCardapio();
+    } catch(e) { console.error(e); }
+}
+
+function renderCardapio() {
+    const grid = document.getElementById('grid-pedidos');
+
+    const grupos = {};
+    cardapio.forEach(item => {
+        if (!grupos[item.categoria]) grupos[item.categoria] = [];
+        grupos[item.categoria].push(item);
+    });
+
+    const semItens = cardapio.length === 0
+        ? '<p class="cardapio-vazio">Nenhum item cadastrado ainda. Clique em "+ Novo item" para começar.</p>'
+        : '';
+
+    grid.innerHTML = `
+        <div class="cardapio-wrap">
+            <div class="cardapio-header">
+                <h3>Itens do cardápio</h3>
+                <button class="btn-novo-item" onclick="abrirModalItem()">+ Novo item</button>
+            </div>
+            ${semItens}
+            ${categoriasOrdem.filter(c => grupos[c]).map(cat => `
+                <div class="categoria-bloco">
+                    <h4>${categoriasLabel[cat]}</h4>
+                    ${grupos[cat].map(item => `
+                        <div class="card-cardapio">
+                            <div class="card-cardapio-info">
+                                <div class="card-cardapio-nome">${item.nome}</div>
+                                ${item.descricao ? `<div class="card-cardapio-desc">${item.descricao}</div>` : ''}
+                            </div>
+                            <span class="card-cardapio-preco">R$ ${Number(item.preco).toFixed(2).replace('.',',')}</span>
+                            <div class="card-cardapio-acoes">
+                                <button class="btn-editar"  onclick="editarItem('${item._id}')">✏️ Editar</button>
+                                <button class="btn-excluir" onclick="excluirItem('${item._id}')">🗑️ Excluir</button>
+                            </div>
+                        </div>`).join('')}
+                </div>`).join('')}
+        </div>`;
+}
+
+window.abrirModalItem = () => {
+    itemEditandoId = null;
+    document.getElementById('modal-item-titulo').textContent = 'Novo item';
+    document.getElementById('item-nome').value       = '';
+    document.getElementById('item-desc').value       = '';
+    document.getElementById('item-preco').value      = '';
+    document.getElementById('item-categoria').value  = 'marmitex';
+    document.getElementById('erro-item').textContent = '';
+    document.getElementById('modalItem').classList.add('open');
+};
+
+window.editarItem = (id) => {
+    const item = cardapio.find(c => c._id === id);
+    if (!item) return;
+    itemEditandoId = id;
+    document.getElementById('modal-item-titulo').textContent = 'Editar item';
+    document.getElementById('item-nome').value       = item.nome;
+    document.getElementById('item-desc').value       = item.descricao || '';
+    document.getElementById('item-preco').value      = item.preco;
+    document.getElementById('item-categoria').value  = item.categoria;
+    document.getElementById('erro-item').textContent = '';
+    document.getElementById('modalItem').classList.add('open');
+};
+
+window.fecharModalItem = () => document.getElementById('modalItem').classList.remove('open');
+
+window.salvarItem = async () => {
+    const nome      = document.getElementById('item-nome').value.trim();
+    const descricao = document.getElementById('item-desc').value.trim();
+    const preco     = parseFloat(document.getElementById('item-preco').value);
+    const categoria = document.getElementById('item-categoria').value;
+    const erro      = document.getElementById('erro-item');
+
+    if (!nome)                  { erro.textContent = 'Informe o nome do item.'; return; }
+    if (isNaN(preco) || preco <= 0) { erro.textContent = 'Informe um preço válido.'; return; }
+
+    try {
+        if (itemEditandoId) {
+            await updateDoc(doc(db,'cardapio',itemEditandoId), { nome, descricao, preco, categoria });
+        } else {
+            await addDoc(collection(db,'cardapio'), { nome, descricao, preco, categoria, criadoEm: serverTimestamp() });
+        }
+        fecharModalItem();
+        carregarCardapio();
+        showNotif(itemEditandoId ? 'Item atualizado ✓' : 'Item adicionado ✓', nome);
+    } catch(e) {
+        erro.textContent = 'Erro ao salvar. Tente novamente.';
+        console.error(e);
+    }
+};
+
+window.excluirItem = async (id) => {
+    if (!confirm('Excluir este item do cardápio?')) return;
+    try {
+        await deleteDoc(doc(db,'cardapio', id));
+        carregarCardapio();
+        showNotif('Item removido ✓', '');
+    } catch(e) { showNotif('Erro ao excluir', 'Tente novamente.'); console.error(e); }
+};
