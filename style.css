@@ -76,9 +76,14 @@ body {
     cursor: pointer; transition: background .2s, color .2s;
 }
 .login-box button:hover { background-color: var(--dourado); color: var(--preto); border-color: var(--dourado); }
-.btn-cadastro-login { background-color: var(--branco) !important; color: var(--preto) !important; border: 1px solid var(--borda-clara) !important; }
-.btn-cadastro-login:hover { background-color: var(--off-white) !important; border-color: var(--dourado) !important; }
 #erro-login { color: var(--vermelho); font-size: .85rem; margin-bottom: .75rem; min-height: 1.2rem; }
+#msg-login { color: var(--dourado-escuro); font-size: .85rem; margin-bottom: .75rem; min-height: 1.2rem; line-height: 1.4; }
+.link-esqueci-senha {
+    display: block; text-align: center;
+    font-size: .85rem; color: var(--cinza-texto);
+    text-decoration: underline; margin-top: .3rem;
+}
+.link-esqueci-senha:hover { color: var(--dourado-escuro); }
 
 /* PAINEL */
 #tela-painel { display: none; }

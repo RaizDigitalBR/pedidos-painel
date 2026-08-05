@@ -19,10 +19,9 @@
         <label>Senha</label>
         <input type="password" id="input-senha" placeholder="••••••••">
         <p id="erro-login"></p>
+        <p id="msg-login"></p>
         <button onclick="fazerLogin()">Entrar</button>
-        <button id="btn-cadastro" class="btn-cadastro-login" onclick="fazerCadastro()" style="display:none">
-            Primeiro acesso? Cadastrar
-        </button>
+        <a href="#" id="link-esqueci" onclick="return fazerResetSenha()" class="link-esqueci-senha">Esqueci minha senha</a>
     </div>
 </div>
 
@@ -71,6 +70,8 @@
         </button>
         <button class="aba" onclick="mudarAba('cardapio', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 2v20" stroke-linecap="round"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Cardápio
+        </button>
     </div>
 
     <main>

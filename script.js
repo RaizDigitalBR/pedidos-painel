@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut }
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -25,6 +25,9 @@ let idsConhecidos = new Set();
 let intervalId    = null;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
+// Cadastro público foi removido de propósito: a única conta autorizada
+// é criada manualmente pelo dono no Firebase Console (Authentication > Users).
+// Isso fecha a brecha de qualquer pessoa criar login e virar "autenticado".
 onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('tela-login').style.display  = 'none';
@@ -36,16 +39,8 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('tela-login').style.display  = 'flex';
         document.getElementById('tela-painel').style.display = 'none';
         if (intervalId) { clearInterval(intervalId); intervalId = null; }
-        verificarPrimeiroCadastro().then(primeiro => {
-            document.getElementById('btn-cadastro').style.display = primeiro ? 'block' : 'none';
-        });
     }
 });
-
-async function verificarPrimeiroCadastro() {
-    const snap = await getDoc(doc(db, 'config', 'dono'));
-    return !snap.exists();
-}
 
 window.fazerLogin = async () => {
     const email = document.getElementById('input-email').value.trim();
@@ -59,25 +54,36 @@ window.fazerLogin = async () => {
     }
 };
 
-window.fazerCadastro = async () => {
-    const email = document.getElementById('input-email').value.trim();
-    const senha = document.getElementById('input-senha').value.trim();
-    const erro  = document.getElementById('erro-login');
-    erro.textContent = '';
-    if (!email || !senha) { erro.textContent = 'Preencha email e senha.'; return; }
-    if (senha.length < 6) { erro.textContent = 'Senha precisa ter pelo menos 6 caracteres.'; return; }
-    try {
-        const primeiro = await verificarPrimeiroCadastro();
-        if (!primeiro) { erro.textContent = 'Cadastro não permitido. Já existe um usuário registrado.'; return; }
-        await createUserWithEmailAndPassword(auth, email, senha);
-        await setDoc(doc(db, 'config', 'dono'), { email, criadoEm: serverTimestamp() });
-    } catch(e) {
-        erro.textContent = 'Erro ao cadastrar. Tente novamente.';
-        console.error(e);
-    }
-};
-
 window.fazerLogout = async () => await signOut(auth);
+
+// Recuperação de senha: usa o fluxo nativo do Firebase, que só envia
+// e-mail de troca para contas que JÁ existem. Não cria conta nova,
+// então não reabre a brecha de cadastro livre que corrigimos antes.
+window.fazerResetSenha = () => {
+    const email = document.getElementById('input-email').value.trim();
+    const erro  = document.getElementById('erro-login');
+    const msg   = document.getElementById('msg-login');
+    erro.textContent = '';
+    msg.textContent  = '';
+
+    if (!email) {
+        erro.textContent = 'Digite seu email no campo acima antes de clicar em "Esqueci minha senha".';
+        return false;
+    }
+
+    sendPasswordResetEmail(auth, email)
+        .then(() => {
+            msg.textContent = 'Se esse email estiver cadastrado, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.';
+        })
+        .catch(() => {
+            // Mesma mensagem em caso de erro, de propósito: não revela se o
+            // email existe ou não no sistema, o que evita que alguém use esse
+            // campo para descobrir quais emails têm conta cadastrada.
+            msg.textContent = 'Se esse email estiver cadastrado, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.';
+        });
+
+    return false;
+};
 
 // ── PEDIDOS ───────────────────────────────────────────────────────────────
 async function buscarPedidos() {
