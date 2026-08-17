@@ -25,6 +25,19 @@ let idsConhecidos = new Set();
 let intervalId    = null;
 let lojaAberta    = true; // estado local, sincronizado com o Firestore abaixo
 
+// ── NOTIFICAÇÕES DO NAVEGADOR ────────────────────────────────────────────
+// Pede permissão assim que o painel carrega (o navegador só pergunta uma
+// vez; depois disso lembra a resposta do usuário).
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+
+function notificarSistema(titulo, corpo) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(titulo, { body: corpo, icon: 'imperio_logo_silver.png' });
+    }
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────────────
 // Cadastro público foi removido de propósito: a única conta autorizada
 // é criada manualmente pelo dono no Firebase Console (Authentication > Users).
@@ -129,7 +142,9 @@ async function buscarPedidos() {
         if (!primeiraVez) {
             novosIds.forEach(id => {
                 if (!idsConhecidos.has(id) && pedidos[id].status === 'pendente') {
-                    showNotif('Novo pedido! 🛎️', `${pedidos[id].cliente} — R$ ${pedidos[id].total.toFixed(2).replace('.',',')}`);
+                    const msg = `${pedidos[id].cliente} — R$ ${pedidos[id].total.toFixed(2).replace('.',',')}`;
+                    showNotif('Novo pedido! 🛎️', msg);
+                    notificarSistema('Novo pedido! 🛎️', msg);
                     if (somAtivado) playBeep();
                 }
             });
