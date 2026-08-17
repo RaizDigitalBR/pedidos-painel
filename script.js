@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, onSnapshot }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -23,6 +23,7 @@ let somAtivado    = false;
 let primeiraVez   = true;
 let idsConhecidos = new Set();
 let intervalId    = null;
+let lojaAberta    = true; // estado local, sincronizado com o Firestore abaixo
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
 // Cadastro público foi removido de propósito: a única conta autorizada
@@ -76,13 +77,44 @@ window.fazerResetSenha = () => {
             msg.textContent = 'Se esse email estiver cadastrado, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.';
         })
         .catch(() => {
-            // Mesma mensagem em caso de erro, de propósito: não revela se o
-            // email existe ou não no sistema, o que evita que alguém use esse
-            // campo para descobrir quais emails têm conta cadastrada.
             msg.textContent = 'Se esse email estiver cadastrado, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.';
         });
 
     return false;
+};
+
+// ── STATUS DA LOJA (ABERTO/FECHADO) ─────────────────────────────────────
+// Escuta em tempo real o documento config/loja. Assim que o painel abre
+// (usuário logado), já mostra o status atual e mantém sincronizado caso
+// seja alterado de outro dispositivo.
+onSnapshot(doc(db, 'config', 'loja'), (snap) => {
+    lojaAberta = snap.exists() ? (snap.data().aberto !== false) : true; // default: aberto
+    atualizarBotaoLoja();
+});
+
+function atualizarBotaoLoja() {
+    const btn = document.getElementById('btnLoja');
+    if (!btn) return;
+    if (lojaAberta) {
+        btn.textContent = '🟢 Loja: Aberta';
+        btn.classList.remove('loja-fechada');
+        btn.classList.add('loja-aberta');
+    } else {
+        btn.textContent = '🔴 Loja: Fechada';
+        btn.classList.remove('loja-aberta');
+        btn.classList.add('loja-fechada');
+    }
+}
+
+window.toggleLoja = async () => {
+    const novoStatus = !lojaAberta;
+    try {
+        await setDoc(doc(db, 'config', 'loja'), { aberto: novoStatus, atualizadoEm: serverTimestamp() }, { merge: true });
+        showNotif(novoStatus ? 'Loja aberta ✓' : 'Loja fechada ✓', novoStatus ? 'Clientes já podem fazer pedidos.' : 'Clientes não conseguem mais pedir até você reabrir.');
+    } catch(e) {
+        showNotif('Erro ao atualizar', 'Tente novamente.');
+        console.error(e);
+    }
 };
 
 // ── PEDIDOS ───────────────────────────────────────────────────────────────

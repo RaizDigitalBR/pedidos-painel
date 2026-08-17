@@ -11,6 +11,8 @@
   --borda-clara: #e5e0d5;
   --vermelho: #9c2b2b;
   --vermelho-claro: #f6e6e6;
+  --verde: #2e7d4f;
+  --verde-claro: #e3f3e9;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -136,6 +138,26 @@ header h2 {
 .btn-header.limpar { background-color: rgba(156,43,43,0.16); border-color: rgba(156,43,43,0.3); }
 .btn-header.limpar:hover { background-color: rgba(156,43,43,0.32); }
 .btn-header svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* botão de status da loja (aberto/fechado) — mais destacado que os outros
+   botões do header, porque é a ação mais importante do painel */
+.btn-header.loja-toggle {
+    font-weight: bold;
+    font-size: .82rem;
+    padding: .45rem .9rem;
+}
+.btn-header.loja-toggle.loja-aberta {
+    background-color: rgba(46,125,79,0.22);
+    border-color: var(--verde);
+    color: #a8e6bd;
+}
+.btn-header.loja-toggle.loja-aberta:hover { background-color: rgba(46,125,79,0.38); }
+.btn-header.loja-toggle.loja-fechada {
+    background-color: rgba(156,43,43,0.28);
+    border-color: var(--vermelho);
+    color: #f3b8b8;
+}
+.btn-header.loja-toggle.loja-fechada:hover { background-color: rgba(156,43,43,0.44); }
 
 /* ABAS */
 .abas {
