@@ -17,13 +17,12 @@ const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 const auth = getAuth(app);
 
-let pedidos       = {};
-let abaAtual      = 'pendente';
-let somAtivado    = false;
-let primeiraVez   = true;
-let idsConhecidos = new Set();
-let intervalId    = null;
-let lojaAberta    = true; // estado local, sincronizado com o Firestore abaixo
+let pedidos          = {};
+let abaAtual         = 'pendente';
+let somAtivado       = false;
+let primeiraVez      = true;
+let unsubscribePedidos = null; // referência do listener em tempo real, pra poder desligar no logout
+let lojaAberta        = true; // estado local, sincronizado com o Firestore abaixo
 
 // ── NOTIFICAÇÕES DO NAVEGADOR ────────────────────────────────────────────
 // Pede permissão assim que o painel carrega (o navegador só pergunta uma
@@ -46,13 +45,14 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('tela-login').style.display  = 'none';
         document.getElementById('tela-painel').style.display = 'block';
-        buscarPedidos();
-        if (intervalId) clearInterval(intervalId);
-        intervalId = setInterval(buscarPedidos, 3000);
+        if (unsubscribePedidos) unsubscribePedidos();
+        escutarPedidos();
     } else {
         document.getElementById('tela-login').style.display  = 'flex';
         document.getElementById('tela-painel').style.display = 'none';
-        if (intervalId) { clearInterval(intervalId); intervalId = null; }
+        if (unsubscribePedidos) { unsubscribePedidos(); unsubscribePedidos = null; }
+        primeiraVez = true; // reseta pra próxima vez que alguém logar
+        pedidos = {};
     }
 });
 
@@ -130,32 +130,43 @@ window.toggleLoja = async () => {
     }
 };
 
-// ── PEDIDOS ───────────────────────────────────────────────────────────────
-async function buscarPedidos() {
-    try {
-        const snap = await getDocs(query(collection(db,'pedidos'), orderBy('criadoEm','desc')));
-        const novosIds = new Set();
+// ── PEDIDOS (tempo real, sem polling) ───────────────────────────────────
+// Antes isso rodava num setInterval de 3 em 3 segundos chamando getDocs
+// (busca completa da coleção inteira toda vez — caro em leitura e lento
+// pra atualizar). Agora é um único listener onSnapshot: ele lê tudo uma
+// vez ao conectar e, depois disso, só recebe o que realmente mudou.
+function escutarPedidos() {
+    const pedidosQuery = query(collection(db, 'pedidos'), orderBy('criadoEm', 'desc'));
+
+    unsubscribePedidos = onSnapshot(pedidosQuery, (snap) => {
         snap.docs.forEach(d => {
-            novosIds.add(d.id);
             pedidos[d.id] = { _id: d.id, ...d.data() };
         });
+
+        // Notifica só pedido pendente que É NOVO de verdade (não dispara
+        // pra tudo que já existia quando o painel abriu).
         if (!primeiraVez) {
-            novosIds.forEach(id => {
-                if (!idsConhecidos.has(id) && pedidos[id].status === 'pendente') {
-                    const msg = `${pedidos[id].cliente} — R$ ${pedidos[id].total.toFixed(2).replace('.',',')}`;
-                    showNotif('Novo pedido! 🛎️', msg);
-                    notificarSistema('Novo pedido! 🛎️', msg);
-                    if (somAtivado) playBeep();
+            snap.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const p = pedidos[change.doc.id];
+                    if (p && p.status === 'pendente') {
+                        const msg = `${p.cliente} — R$ ${p.total.toFixed(2).replace('.', ',')}`;
+                        showNotif('Novo pedido! 🛎️', msg);
+                        notificarSistema('Novo pedido! 🛎️', msg);
+                        if (somAtivado) playBeep();
+                    }
                 }
             });
         }
-        idsConhecidos = novosIds;
-        primeiraVez   = false;
+        primeiraVez = false;
+
         atualizarBadges();
         if (abaAtual !== 'cardapio') renderGrid();
-        const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('atualizado-em').textContent = `Atualizado às ${agora}`;
-    } catch(e) { console.error(e); }
+    }, (erro) => {
+        console.error('Erro no listener de pedidos:', erro);
+    });
 }
 
 function atualizarBadges() {
