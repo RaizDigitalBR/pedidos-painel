@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, onSnapshot }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail }
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -41,6 +41,12 @@ function notificarSistema(titulo, corpo) {
 // Cadastro público foi removido de propósito: a única conta autorizada
 // é criada manualmente pelo dono no Firebase Console (Authentication > Users).
 // Isso fecha a brecha de qualquer pessoa criar login e virar "autenticado".
+//
+// ATENCAO: existe um bloco de CADASTRO TEMPORARIO mais abaixo, marcado com
+// "REMOVER DEPOIS". Ele reabre essa brecha de proposito, so para permitir
+// a criacao da primeira conta. Assim que a conta for criada, apague o bloco
+// inteiro (JS aqui embaixo e o link/botao no index.html) e volte a criar
+// contas novas manualmente pelo Firebase Console.
 onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('tela-login').style.display  = 'none';
@@ -95,6 +101,45 @@ window.fazerResetSenha = () => {
 
     return false;
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// INICIO DO BLOCO TEMPORARIO DE CADASTRO — REMOVER DEPOIS
+// Use uma unica vez para criar a primeira conta. Depois disso, apague esta
+// funcao inteira, o import de createUserWithEmailAndPassword la em cima, e
+// o link/botao "Criar conta" no index.html.
+// ══════════════════════════════════════════════════════════════════════════
+window.criarContaTemporario = async () => {
+    const email = document.getElementById('input-email').value.trim();
+    const senha = document.getElementById('input-senha').value.trim();
+    const erro  = document.getElementById('erro-login');
+    const msg   = document.getElementById('msg-login');
+    erro.textContent = '';
+    msg.textContent  = '';
+
+    if (!email || !senha) {
+        erro.textContent = 'Preencha email e senha antes de clicar em "Criar conta".';
+        return false;
+    }
+    if (senha.length < 6) {
+        erro.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+        return false;
+    }
+
+    try {
+        await createUserWithEmailAndPassword(auth, email, senha);
+        msg.textContent = 'Conta criada! Pode fazer login normalmente agora.';
+    } catch (e) {
+        if (e.code === 'auth/email-already-in-use') {
+            erro.textContent = 'Já existe uma conta com esse email.';
+        } else {
+            erro.textContent = 'Não foi possível criar a conta: ' + e.code;
+        }
+    }
+    return false;
+};
+// ══════════════════════════════════════════════════════════════════════════
+// FIM DO BLOCO TEMPORARIO DE CADASTRO — REMOVER DEPOIS
+// ══════════════════════════════════════════════════════════════════════════
 
 // ── STATUS DA LOJA (ABERTO/FECHADO) ─────────────────────────────────────
 // Escuta em tempo real o documento config/loja. Assim que o painel abre
