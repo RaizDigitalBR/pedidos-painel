@@ -258,6 +258,9 @@ function renderGrid() {
                 </div>
                 <span class="status-badge s-${p.status}">${{pendente:'⏳ Aguardando',preparando:'👨‍🍳 Preparando',pronto:'✅ Pronto',entregue:'📦 Retirado'}[p.status]||p.status}</span>
             </div>
+            ${p.tipo === 'entrega'
+                ? `<div class="obs-box">🛵 Entrega: ${p.enderecoEntrega || 'não informado'}</div>`
+                : `<div class="obs-box">🏠 Retirada no local</div>`}
             <div class="card-itens">
                 ${p.itens.map(i=>`
                     <div class="item-linha">
