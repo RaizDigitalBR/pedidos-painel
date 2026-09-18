@@ -33,7 +33,7 @@ if ('Notification' in window && Notification.permission === 'default') {
 
 function notificarSistema(titulo, corpo) {
     if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(titulo, { body: corpo, icon: 'imperio_logo_silver.png' });
+        new Notification(titulo, { body: corpo });
     }
 }
 
